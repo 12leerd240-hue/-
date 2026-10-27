@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>예의를 가져가~!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        
+        * {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #030712;
+            color: #ffffff;
+        }
+
+        /* Giant Pop-Up Text Animation */
+        @keyframes giantPop {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -40%) scale(0.3) rotate(-5deg);
+            }
+            30% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.35) rotate(2deg);
+            }
+            70% {
+                opacity: 1;
+                transform: translate(-50%, -55%) scale(1.15) rotate(0deg);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -70%) scale(0.8) rotate(3deg);
+            }
+        }
+
+        .giant-greeting-popup {
+            position: absolute;
+            left: 50%;
+            top: 48%;
+            transform: translate(-50%, -50%);
+            animation: giantPop 0.85s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            pointer-events: none;
+            z-index: 50;
+            white-space: nowrap;
+            text-shadow: 0 0 20px rgba(245, 158, 11, 0.8), 0 0 40px rgba(239, 68, 68, 0.6), 0 4px 10px rgba(0,0,0,0.9);
+        }
+
+        @keyframes popJudgement {
+            0% { opacity: 1; transform: translate(-50%, 0) scale(0.7); }
+            50% { opacity: 1; transform: translate(-50%, -20px) scale(1.2); }
+            100% { opacity: 0; transform: translate(-50%, -45px) scale(0.9); }
+        }
+
+        .judgement-text {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: popJudgement 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .btn-active-effect {
+            transition: transform 0.05s ease-out, filter 0.05s ease-out;
+        }
+
+        .btn-active-effect:active {
+            transform: scale(0.92) translateY(3px);
+            filter: brightness(1.3);
+        }
+
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #f59e0b;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body class="flex flex-col justify-between items-center h-full w-full select-none bg-slate-950">
+
+    <!-- Top HUD Header -->
+    <header class="w-full max-w-md px-3 py-2 z-20 flex justify-between items-center bg-slate-900/90 backdrop-blur border-b border-amber-500/30 shadow-lg">
+        <!-- BGM Toggle & Combo & Speed -->
+        <div class="flex items-center gap-2">
+            <button id="bgm-toggle-btn" onclick="toggleBGM()" class="bg-indigo-600/80 hover:bg-indigo-500 text-white text-[11px] font-black px-2.5 py-1 rounded-xl flex items-center gap-1 shadow transition active:scale-95">
+                <i id="bgm-icon" class="fa-solid fa-volume-high"></i>
+                <span id="bgm-label">BGM ON</span>
+            </button>
+            <div class="flex flex-col">
+                <div class="flex items-center gap-1">
+                    <span id="hud-combo" class="text-xs sm:text-sm font-black text-amber-300 leading-tight">0 COMBO</span>
+                    <span id="hud-speed" class="text-[10px] font-extrabold text-rose-400 bg-rose-950/80 px-1.5 py-0.5 rounded border border-rose-500/40">SPEED x1.0 ⚡</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Health / Hearts (Half-heart precision) -->
+        <div id="hud-hearts" class="flex gap-1 items-center bg-slate-950/60 px-2 py-1 rounded-full border border-slate-800">
+            <!-- Dynamic Hearts Rendered Here -->
+        </div>
+
+        <!-- Score & Guide Help Button -->
+        <div class="flex items-center gap-2">
+            <div class="text-right">
+                <div class="text-[9px] text-slate-400 font-bold leading-none">리듬 점수</div>
+                <div id="hud-score" class="text-sm sm:text-base font-black text-emerald-400 tracking-wider leading-tight">000000</div>
+            </div>
+            <button onclick="toggleHelpModal(true)" title="가이드" class="bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-300 px-2 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1 active:scale-95">
+                <i class="fa-solid fa-circle-question text-sm"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Game Area / Canvas Container -->
+    <main class="relative w-full max-w-md flex-1 overflow-hidden bg-slate-900 flex flex-col justify-center items-center">
+        <!-- Canvas Layer -->
+        <canvas id="gameCanvas" class="w-full h-full block"></canvas>
+
+        <!-- Dynamic Giant Greeting & Judgement Layer -->
+        <div id="popup-layer" class="absolute inset-0 pointer-events-none z-10"></div>
+
+        <!-- START OVERLAY -->
+        <div id="overlay-start" class="absolute inset-0 z-30 bg-slate-950/90 backdrop-blur-md flex flex-col justify-center items-center p-5 text-center">
+            <div class="w-16 h-16 sm:w-20 sm:h-20 bg-amber-400/20 border-2 border-amber-400 rounded-full flex items-center justify-center text-3xl sm:text-4xl mb-3 animate-bounce shadow-lg shadow-amber-500/20">
+                🦭
+            </div>
+            
+            <h1 class="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-orange-300 to-amber-500 mb-1">
+                예의를 가져가~!
+            </h1>
+            <p class="text-xs text-amber-200/90 font-bold mb-3">🎵 콤보 스피드 폭주 에디션 ⚡</p>
+            
+            <p class="text-slate-300 text-xs sm:text-sm max-w-xs mb-3 leading-relaxed">
+                연속 성공(COMBO)할수록 속도가 <strong class="text-rose-400">배수로 폭주!</strong><br>
+                실수 시 <strong class="text-rose-500">하트 반 칸(💔)</strong>이 차감됩니다.
+            </p>
+
+            <button onclick="toggleHelpModal(true)" class="w-full max-w-xs mb-4 bg-slate-800/90 hover:bg-slate-800 border-2 border-amber-400/60 text-amber-300 font-bold py-2.5 px-4 rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition btn-active-effect">
+                <i class="fa-solid fa-book-open text-amber-400"></i>
+                <span>❓ 리듬 인사 족보 보기</span>
+            </button>
+
+            <!-- Mode/Difficulty Selection -->
+            <div class="w-full max-w-xs mb-4">
+                <div class="text-[11px] text-amber-200/80 mb-1.5 font-bold">기본 시작 스피드</div>
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="selectDifficulty('easy')" id="opt-easy" class="diff-btn py-2 rounded-xl text-xs font-bold border-2 border-emerald-500 bg-emerald-500/20 text-emerald-300">
+                        🌱 EASY
+                    </button>
+                    <button onclick="selectDifficulty('normal')" id="opt-normal" class="diff-btn py-2 rounded-xl text-xs font-bold border-2 border-transparent bg-slate-800 text-slate-400">
+                        🔥 NORMAL
+                    </button>
+                    <button onclick="selectDifficulty('hard')" id="opt-hard" class="diff-btn py-2 rounded-xl text-xs font-bold border-2 border-transparent bg-slate-800 text-slate-400">
+                        🌶️ HARD
+                    </button>
+                </div>
+            </div>
+
+            <!-- Start Button -->
+            <button onclick="startGame()" class="w-full max-w-xs bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 text-slate-950 font-black py-3.5 rounded-2xl shadow-lg shadow-orange-500/30 text-base transition btn-active-effect">
+                <i class="fa-solid fa-play mr-2"></i>게임 시작하기
+            </button>
+
+            <div class="mt-3.5 text-xs text-slate-400 flex items-center gap-2 bg-slate-900/90 px-3 py-1 rounded-full border border-slate-800">
+                <i class="fa-solid fa-trophy text-amber-400"></i>
+                <span>최고 점수: <strong id="start-highscore" class="text-amber-300">0</strong></span>
+            </div>
+        </div>
+
+        <!-- HOW TO PLAY MODAL POPUP -->
+        <div id="modal-help" class="hidden absolute inset-0 z-40 bg-slate-950/90 backdrop-blur-md flex justify-center items-center p-4">
+            <div class="w-full max-w-md bg-slate-900 border-2 border-amber-500/40 rounded-3xl p-4 sm:p-5 shadow-2xl flex flex-col max-h-[90vh]">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl">🎵</span>
+                        <h3 class="text-base sm:text-lg font-black text-amber-300">리듬 인사 가이드</h3>
+                    </div>
+                    <button onclick="toggleHelpModal(false)" class="text-slate-400 hover:text-white p-1 rounded-full text-lg">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto custom-scroll pr-1 space-y-4 text-xs text-slate-200">
+                    <div>
+                        <h4 class="font-bold text-amber-400 mb-2 flex items-center gap-1.5 text-xs sm:text-sm">
+                            <i class="fa-solid fa-address-book text-amber-400"></i>
+                            <span>1. 어른별 맞춤 인사 족보</span>
+                        </h4>
+                        <div class="grid grid-cols-1 gap-2">
+                            <div class="bg-rose-950/30 border border-rose-500/30 rounded-2xl p-2.5 flex items-center justify-between">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="flex gap-1 text-xl">
+                                        <span>🧹</span><span>🧑‍🍳</span><span>📋</span>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-slate-100">청소집사님 / 조리사님 / 영양사님</div>
+                                        <div class="text-[10px] text-rose-300/80">고마우신 어른들!</div>
+                                    </div>
+                                </div>
+                                <div class="bg-rose-500/20 border border-rose-400 text-rose-300 font-black px-2.5 py-1 rounded-xl whitespace-nowrap text-[11px]">
+                                    🙏 감사합니다!
+                                </div>
+                            </div>
+
+                            <div class="bg-amber-950/30 border border-amber-500/30 rounded-2xl p-2.5 flex items-center justify-between">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="flex gap-1 text-xl">
+                                        <span>👨‍🏫</span><span>👩‍👧</span>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-slate-100">선생님 / 학부모님</div>
+                                        <div class="text-[10px] text-amber-300/80">반가운 어른들!</div>
+                                    </div>
+                                </div>
+                                <div class="bg-amber-500/20 border border-amber-400 text-amber-300 font-black px-2.5 py-1 rounded-xl whitespace-nowrap text-[11px]">
+                                    👋 안녕하세요!
+                                </div>
+                            </div>
+
+                            <div class="bg-indigo-950/30 border border-indigo-500/30 rounded-2xl p-2.5 flex items-center justify-between">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="text-xl">🙇‍♂️</span>
+                                    <div>
+                                        <div class="font-bold text-indigo-200">💡 만능 비밀카드: "목례!"</div>
+                                        <div class="text-[10px] text-indigo-300/80">모든 어른 공통 인정! (보너스는 적음)</div>
+                                    </div>
+                                </div>
+                                <div class="bg-indigo-500/20 border border-indigo-400 text-indigo-300 font-black px-2.5 py-1 rounded-xl whitespace-nowrap text-[11px]">
+                                    🙇‍♂️ 목례!
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-800/80 rounded-2xl p-3 border border-slate-700 space-y-1.5">
+                        <h4 class="font-bold text-rose-400 flex items-center gap-1.5 text-xs sm:text-sm">
+                            <i class="fa-solid fa-heart-crack text-rose-400"></i>
+                            <span>2. 체력(피) 차감 규칙</span>
+                        </h4>
+                        <p class="text-[11px] text-slate-300 leading-relaxed">
+                            노드를 놓치거나 잘못된 인사를 건네면 <strong class="text-rose-400">하트 반 칸(💔 0.5 HP)</strong>이 차감됩니다! 총 6번 실수하면 게임 오버입니다.
+                        </p>
+                    </div>
+
+                    <div class="bg-slate-800/80 rounded-2xl p-3 border border-slate-700 space-y-1.5">
+                        <h4 class="font-bold text-amber-400 flex items-center gap-1.5 text-xs sm:text-sm">
+                            <i class="fa-solid fa-bolt text-amber-400"></i>
+                            <span>3. 콤보 비례 스피드 폭주</span>
+                        </h4>
+                        <p class="text-[11px] text-slate-300 leading-relaxed">
+                            연속 인사에 성공(COMBO)할 때마다 떨어지는 속도가 <strong class="text-amber-300">x1.5 → x2.5 → x4.0</strong>으로 무섭게 확확 빨라집니다!
+                        </p>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-slate-800">
+                    <button onclick="toggleHelpModal(false)" class="w-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-black py-2.5 rounded-xl text-xs sm:text-sm transition btn-active-effect">
+                        확인 완료! 게임 시작
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- GAMEOVER OVERLAY -->
+        <div id="overlay-gameover" class="hidden absolute inset-0 z-30 bg-slate-950/95 backdrop-blur-md flex flex-col justify-center items-center p-5 text-center">
+            <div id="res-emoji" class="text-5xl sm:text-6xl mb-2">🏅</div>
+            <span id="res-badge" class="px-3 py-1 bg-amber-400/20 border border-amber-400/50 text-amber-300 text-xs font-bold rounded-full mb-1.5">
+                리듬 인사 마스터
+            </span>
+            <h2 id="res-title" class="text-2xl font-black text-white mb-1">"스피드 예의왕"</h2>
+            <p id="res-desc" class="text-slate-400 text-xs mb-4 max-w-xs">엄청난 속도를 뚫고 어른들께 인사를 건넸습니다!</p>
+
+            <div class="w-full max-w-xs bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 mb-4 space-y-2 text-xs">
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">최종 인사 점수</span>
+                    <span id="res-score" class="text-amber-400 font-extrabold text-sm">0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">최대 연속 비트(콤보)</span>
+                    <span id="res-combo" class="text-indigo-400 font-extrabold">0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">도달한 최고 스피드</span>
+                    <span id="res-maxspeed" class="text-rose-400 font-extrabold">SPEED x1.0 ⚡</span>
+                </div>
+            </div>
+
+            <div class="flex gap-2 w-full max-w-xs">
+                <button onclick="startGame()" class="flex-1 bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 font-black py-3.5 rounded-2xl shadow-lg text-sm transition btn-active-effect">
+                    <i class="fa-solid fa-rotate-right mr-1"></i> 다시 도전하기
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Mobile-First 3-Button Control Bar -->
+    <footer class="w-full max-w-md p-2.5 sm:p-3 bg-slate-900/95 backdrop-blur border-t border-amber-500/30 z-20 shadow-2xl">
+        <div class="grid grid-cols-3 gap-2">
+            <button id="btn-greet-thanks" onpointerdown="triggerGreeting('thanks', event)" class="btn-active-effect bg-gradient-to-b from-rose-500 to-rose-700 border-b-4 border-rose-950 text-white rounded-2xl p-2.5 sm:p-3 flex flex-col items-center justify-center shadow-lg active:brightness-125">
+                <span class="text-2xl sm:text-3xl mb-0.5">🙏</span>
+                <span class="text-xs sm:text-sm font-black tracking-tight">감사합니다!</span>
+                <span class="text-[9px] text-rose-200/80 font-bold mt-0.5">[1] / [A]</span>
+            </button>
+
+            <button id="btn-greet-hello" onpointerdown="triggerGreeting('hello', event)" class="btn-active-effect bg-gradient-to-b from-amber-500 to-amber-700 border-b-4 border-amber-950 text-white rounded-2xl p-2.5 sm:p-3 flex flex-col items-center justify-center shadow-lg active:brightness-125">
+                <span class="text-2xl sm:text-3xl mb-0.5">👋</span>
+                <span class="text-xs sm:text-sm font-black tracking-tight">안녕하세요!</span>
+                <span class="text-[9px] text-amber-200/80 font-bold mt-0.5">[2] / [S]</span>
+            </button>
+
+            <button id="btn-greet-nod" onpointerdown="triggerGreeting('nod', event)" class="btn-active-effect bg-gradient-to-b from-indigo-500 to-indigo-700 border-b-4 border-indigo-950 text-white rounded-2xl p-2.5 sm:p-3 flex flex-col items-center justify-center shadow-lg active:brightness-125">
+                <span class="text-2xl sm:text-3xl mb-0.5">🙇‍♂️</span>
+                <span class="text-xs sm:text-sm font-black tracking-tight">목례!</span>
+                <span class="text-[9px] text-indigo-200/80 font-bold mt-0.5">[3] / [D]</span>
+            </button>
+        </div>
+    </footer>
+
+    <script>
+        let audioCtx = null;
+        let isMuted = false;
+        let bgmTimer = null;
+
+        const BGM_MELODY = [
+            { note: 261.63, duration: 0.18 }, { note: 329.63, duration: 0.18 }, { note: 392.00, duration: 0.18 }, { note: 523.25, duration: 0.18 },
+            { note: 440.00, duration: 0.18 }, { note: 349.23, duration: 0.18 }, { note: 392.00, duration: 0.18 }, { note: 523.25, duration: 0.18 },
+            { note: 293.66, duration: 0.18 }, { note: 349.23, duration: 0.18 }, { note: 440.00, duration: 0.18 }, { note: 587.33, duration: 0.18 },
+            { note: 392.00, duration: 0.18 }, { note: 493.88, duration: 0.18 }, { note: 587.33, duration: 0.18 }, { note: 659.25, duration: 0.18 }
+        ];
+        let bgmStep = 0;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function toggleBGM() {
+            initAudio();
+            isMuted = !isMuted;
+            const btn = document.getElementById('bgm-toggle-btn');
+            const icon = document.getElementById('bgm-icon');
+            const label = document.getElementById('bgm-label');
+
+            if (isMuted) {
+                icon.className = "fa-solid fa-volume-xmark";
+                label.innerText = "BGM OFF";
+                btn.className = "bg-slate-700 text-slate-300 text-[11px] font-black px-2.5 py-1 rounded-xl flex items-center gap-1 shadow transition active:scale-95";
+            } else {
+                icon.className = "fa-solid fa-volume-high";
+                label.innerText = "BGM ON";
+                btn.className = "bg-indigo-600/80 hover:bg-indigo-500 text-white text-[11px] font-black px-2.5 py-1 rounded-xl flex items-center gap-1 shadow transition active:scale-95";
+            }
+        }
+
+        function startBGMSequencer() {
+            if (bgmTimer) clearInterval(bgmTimer);
+            bgmStep = 0;
+            bgmTimer = setInterval(() => {
+                if (!isPlaying || isMuted || !audioCtx) return;
+                const now = audioCtx.currentTime;
+                const item = BGM_MELODY[bgmStep % BGM_MELODY.length];
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(item.note, now);
+                gain.gain.setValueAtTime(0.04, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + item.duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + item.duration);
+
+                bgmStep++;
+            }, 200);
+        }
+
+        function stopBGMSequencer() {
+            if (bgmTimer) clearInterval(bgmTimer);
+            bgmTimer = null;
+        }
+
+        function playSound(type) {
+            if (!audioCtx || isMuted) return;
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'giant') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.05);
+                    osc.frequency.setValueAtTime(783.99, now + 0.1);
+                    osc.frequency.setValueAtTime(1046.50, now + 0.15);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                    osc.start(now);
+                    osc.stop(now + 0.35);
+                } else if (type === 'good') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.setValueAtTime(554.37, now + 0.08);
+                    gain.gain.setValueAtTime(0.18, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                } else if (type === 'miss') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(160, now);
+                    osc.frequency.linearRampToValueAtTime(80, now + 0.22);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+                    osc.start(now);
+                    osc.stop(now + 0.22);
+                }
+            } catch(e) {}
+        }
+
+        function triggerHaptic(pattern) {
+            if (navigator.vibrate) {
+                try { navigator.vibrate(pattern); } catch(e){}
+            }
+        }
+
+        function toggleHelpModal(show) {
+            initAudio();
+            const modal = document.getElementById('modal-help');
+            if (show) modal.classList.remove('hidden');
+            else modal.classList.add('hidden');
+        }
+
+        const ADULT_TYPES = [
+            { id: 'cleaner', title: '청소집사님', emoji: '🧹', color: '#38bdf8', bestGreeting: 'thanks', lane: 0, greetingText: '청소집사님께 감사합니다! 🙏' },
+            { id: 'cook', title: '조리사님', emoji: '🧑‍🍳', color: '#f97316', bestGreeting: 'thanks', lane: 0, greetingText: '조리사님께 감사합니다! 🙏' },
+            { id: 'teacher', title: '선생님', emoji: '👨‍🏫', color: '#a855f7', bestGreeting: 'hello', lane: 1, greetingText: '선생님께 안녕하세요! 👋' },
+            { id: 'nutritionist', title: '영양사님', emoji: '📋', color: '#10b981', bestGreeting: 'thanks', lane: 0, greetingText: '영양사님께 감사합니다! 🙏' },
+            { id: 'parent', title: '학부모님', emoji: '👩‍👧', color: '#ec4899', bestGreeting: 'hello', lane: 1, greetingText: '학부모님께 안녕하세요! 👋' }
+        ];
+
+        const DIFFICULTIES = {
+            easy: { name: 'EASY', baseSpeed: 5.5, spawnInterval: 950 },
+            normal: { name: 'NORMAL', baseSpeed: 7.2, spawnInterval: 750 },
+            hard: { name: 'HARD', baseSpeed: 9.0, spawnInterval: 580 }
+        };
+
+        let canvas, ctx;
+        let selectedDiffKey = 'easy';
+        let isPlaying = false;
+        let score = 0;
+        let combo = 0;
+        let maxCombo = 0;
+        let hp = 6; // 6 half-hearts (3 full hearts total)
+        let maxSpeedMultiplier = 1.0;
+        let lastSpawnTime = 0;
+        let adultQueue = [];
+        let particles = [];
+        let animFrameId = null;
+
+        let hitLineY = 0;
+        let lanePositions = [0, 0, 0];
+
+        window.onload = function() {
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            const savedScore = localStorage.getItem('school_rhythm_highscore') || '0';
+            document.getElementById('start-highscore').innerText = Number(savedScore).toLocaleString();
+
+            document.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+
+            window.addEventListener('keydown', (e) => {
+                if (!isPlaying) return;
+                const key = e.key.toUpperCase();
+                if (key === '1' || key === 'A') triggerGreeting('thanks');
+                else if (key === '2' || key === 'S') triggerGreeting('hello');
+                else if (key === '3' || key === 'D') triggerGreeting('nod');
+            });
+
+            updateHUD();
+        };
+
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+
+            hitLineY = canvas.height * 0.78;
+            lanePositions = [
+                canvas.width * 0.25,
+                canvas.width * 0.50,
+                canvas.width * 0.75
+            ];
+        }
+
+        function selectDifficulty(diff) {
+            selectedDiffKey = diff;
+            document.querySelectorAll('.diff-btn').forEach(btn => {
+                btn.className = "diff-btn py-2 rounded-xl text-xs font-bold border-2 border-transparent bg-slate-800 text-slate-400";
+            });
+            const selectedBtn = document.getElementById(`opt-${diff}`);
+            if (diff === 'easy') {
+                selectedBtn.className = "diff-btn py-2 rounded-xl text-xs font-bold border-2 border-emerald-500 bg-emerald-500/20 text-emerald-300";
+            } else if (diff === 'normal') {
+                selectedBtn.className = "diff-btn py-2 rounded-xl text-xs font-bold border-2 border-amber-500 bg-amber-500/20 text-amber-300";
+            } else {
+                selectedBtn.className = "diff-btn py-2 rounded-xl text-xs font-bold border-2 border-rose-500 bg-rose-500/20 text-rose-300";
+            }
+        }
+
+        function startGame() {
+            initAudio();
+            document.getElementById('overlay-start').classList.add('hidden');
+            document.getElementById('overlay-gameover').classList.add('hidden');
+
+            score = 0;
+            combo = 0;
+            maxCombo = 0;
+            hp = 6; // Full 3 hearts (6 half-hearts)
+            maxSpeedMultiplier = 1.0;
+            adultQueue = [];
+            particles = [];
+            lastSpawnTime = performance.now();
+            isPlaying = true;
+
+            updateHUD();
+            startBGMSequencer();
+            
+            if (animFrameId) cancelAnimationFrame(animFrameId);
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Calculate dynamic speed multiplier based on combo
+        function getCurrentSpeedMultiplier() {
+            let mult = 1.0;
+            if (combo >= 25) mult = 4.2;
+            else if (combo >= 18) mult = 3.2;
+            else if (combo >= 12) mult = 2.4;
+            else if (combo >= 6) mult = 1.7;
+            else if (combo >= 3) mult = 1.3;
+
+            if (mult > maxSpeedMultiplier) maxSpeedMultiplier = mult;
+            return mult;
+        }
+
+        function updateHUD() {
+            document.getElementById('hud-score').innerText = score.toString().padStart(6, '0');
+            document.getElementById('hud-combo').innerText = `${combo} COMBO`;
+
+            const currentMult = getCurrentSpeedMultiplier();
+            document.getElementById('hud-speed').innerText = `SPEED x${currentMult.toFixed(1)} ⚡`;
+
+            // Render Half Hearts System
+            const heartsContainer = document.getElementById('hud-hearts');
+            heartsContainer.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                const heartValue = hp - (i * 2);
+                if (heartValue >= 2) {
+                    // Full Heart
+                    heartsContainer.innerHTML += `<i class="fa-solid fa-heart text-rose-500 text-sm sm:text-base"></i>`;
+                } else if (heartValue === 1) {
+                    // Half Heart
+                    heartsContainer.innerHTML += `<i class="fa-solid fa-heart-crack text-rose-400 text-sm sm:text-base animate-pulse"></i>`;
+                } else {
+                    // Empty Heart
+                    heartsContainer.innerHTML += `<i class="fa-regular fa-heart text-slate-700 text-sm sm:text-base"></i>`;
+                }
+            }
+        }
+
+        function spawnAdult() {
+            const config = DIFFICULTIES[selectedDiffKey];
+            const type = ADULT_TYPES[Math.floor(Math.random() * ADULT_TYPES.length)];
+            const targetLaneIndex = type.bestGreeting === 'thanks' ? 0 : 1;
+            
+            adultQueue.push({
+                ...type,
+                x: lanePositions[targetLaneIndex],
+                y: -50,
+                baseSpeed: config.baseSpeed,
+                greeted: false
+            });
+        }
+
+        function triggerGreeting(greetingType, event) {
+            if (event && event.preventDefault) event.preventDefault();
+            if (!isPlaying) return;
+
+            initAudio();
+
+            let targetAdult = null;
+            let minDistance = 9999;
+
+            for (let i = 0; i < adultQueue.length; i++) {
+                const adult = adultQueue[i];
+                if (adult.greeted) continue;
+                const dist = Math.abs(adult.y - hitLineY);
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    targetAdult = adult;
+                }
+            }
+
+            const hitThreshold = 85;
+
+            if (targetAdult && minDistance <= hitThreshold) {
+                targetAdult.greeted = true;
+                const isBestGreeting = (greetingType === targetAdult.bestGreeting);
+                const isNod = (greetingType === 'nod');
+
+                if (isBestGreeting || isNod) {
+                    combo++;
+                    if (combo > maxCombo) maxCombo = combo;
+
+                    let addedScore = 1000;
+                    let displayMsg = targetAdult.greetingText;
+
+                    if (isNod) {
+                        displayMsg = `${targetAdult.title}께 목례! 🙇‍♂️`;
+                        addedScore = 600;
+                    }
+
+                    score += addedScore + (combo * 50);
+
+                    // Trigger GIANT POPUP
+                    showGiantGreetingPopup(displayMsg, targetAdult.color);
+                    playSound('giant');
+                    createParticles(targetAdult.x, targetAdult.y, targetAdult.color);
+                    triggerHaptic([35, 20, 35]);
+                } else {
+                    // Wrong Greeting Type -> Half Heart Loss!
+                    combo = 0;
+                    deductHalfHeart();
+                    showJudgement("인사 미스! 💔", "text-rose-400 border-rose-500");
+                    playSound('miss');
+                    triggerHaptic([80]);
+                }
+            } else {
+                // Empty Air Swing -> Half Heart Loss!
+                combo = 0;
+                deductHalfHeart();
+                showJudgement("MISS! 💔", "text-rose-400 border-rose-500");
+                playSound('miss');
+                triggerHaptic([80]);
+            }
+
+            updateHUD();
+        }
+
+        function deductHalfHeart() {
+            hp -= 1; // Deduct 0.5 heart (1 unit of HP)
+            if (hp <= 0) {
+                hp = 0;
+                updateHUD();
+                gameOver();
+            }
+        }
+
+        function showGiantGreetingPopup(text, glowColor) {
+            const layer = document.getElementById('popup-layer');
+            const el = document.createElement('div');
+            el.className = 'giant-greeting-popup text-2xl sm:text-4xl font-black px-6 py-3 rounded-3xl bg-slate-950/95 border-4 border-amber-400 text-amber-300 shadow-2xl';
+            el.style.borderColor = glowColor || '#f59e0b';
+            el.innerText = text;
+            layer.appendChild(el);
+
+            setTimeout(() => {
+                if (el.parentNode) el.parentNode.removeChild(el);
+            }, 850);
+        }
+
+        function showJudgement(text, colorClasses) {
+            const layer = document.getElementById('popup-layer');
+            const el = document.createElement('div');
+            el.className = `judgement-text text-base sm:text-lg font-black px-3.5 py-1.5 rounded-full bg-slate-900/90 border shadow-lg ${colorClasses}`;
+            el.style.top = '62%';
+            el.innerText = text;
+            layer.appendChild(el);
+
+            setTimeout(() => {
+                if (el.parentNode) el.parentNode.removeChild(el);
+            }, 600);
+        }
+
+        function createParticles(x, y, color) {
+            const symbols = ['✨', '💖', '⭐', '🎵', '🌸', '💥'];
+            for (let i = 0; i < 10; i++) {
+                particles.push({
+                    x, y,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    symbol: symbols[Math.floor(Math.random() * symbols.length)],
+                    size: 16 + Math.random() * 10,
+                    alpha: 1.0
+                });
+            }
+        }
+
+        function gameLoop(timestamp) {
+            if (!isPlaying) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawJweJweBackground();
+
+            const speedMultiplier = getCurrentSpeedMultiplier();
+            const config = DIFFICULTIES[selectedDiffKey];
+            const currentInterval = Math.max(320, config.spawnInterval / (speedMultiplier * 0.85));
+
+            if (timestamp - lastSpawnTime > currentInterval) {
+                spawnAdult();
+                lastSpawnTime = timestamp;
+            }
+
+            drawHitZone();
+
+            for (let i = adultQueue.length - 1; i >= 0; i--) {
+                const adult = adultQueue[i];
+                adult.y += adult.baseSpeed * speedMultiplier;
+
+                drawAdultCharacter(adult);
+
+                // Missed Adult -> Deduct Half Heart!
+                if (!adult.greeted && adult.y > hitLineY + 60) {
+                    adult.greeted = true;
+                    combo = 0;
+                    deductHalfHeart();
+                    showJudgement("MISS! 💔", "text-rose-500 border-rose-600");
+                    playSound('miss');
+                    triggerHaptic([100, 50, 100]);
+                    updateHUD();
+
+                    if (hp <= 0) return;
+                }
+
+                if (adult.y > canvas.height + 80) {
+                    adultQueue.splice(i, 1);
+                }
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.035;
+
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, p.alpha);
+                ctx.font = `${p.size}px sans-serif`;
+                ctx.fillText(p.symbol, p.x, p.y);
+                ctx.restore();
+
+                if (p.alpha <= 0) particles.splice(i, 1);
+            }
+
+            animFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        // Background Rendering
+        function drawJweJweBackground() {
+            const w = canvas.width;
+            const h = canvas.height;
+
+            const stripeCount = 7;
+            const stripeW = w / stripeCount;
+            const rainbowColors = ['#ff4757', '#ffa502', '#eccc68', '#2ed573', '#1e90ff', '#3742fa', '#70a1ff'];
+            for (let i = 0; i < stripeCount; i++) {
+                ctx.fillStyle = rainbowColors[i];
+                ctx.fillRect(i * stripeW, 0, stripeW, h);
+            }
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+            for (let y = 0; y < h; y += 12) {
+                for (let x = 0; x < w; x += 12) {
+                    ctx.beginPath();
+                    ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // Speech Bubble Title
+            const bubbleX = w * 0.5;
+            const bubbleY = h * 0.15;
+            const bubbleW = Math.min(w * 0.85, 330);
+            const bubbleH = 75;
+
+            ctx.save();
+            ctx.shadowColor = 'rgba(0,0,0,0.4)';
+            ctx.shadowBlur = 10;
+
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.ellipse(bubbleX, bubbleY, bubbleW / 2, bubbleH / 2, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#000000';
+            ctx.font = '900 22px "Batang", serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('“인사 줴줴이야”', bubbleX, bubbleY);
+            ctx.restore();
+
+            // Blue Seal Mascot
+            const sealX = w * 0.20;
+            const sealY = h * 0.88;
+            const sealR = Math.min(w * 0.22, 72);
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(sealX, sealY, sealR, 0, Math.PI * 2);
+            ctx.fillStyle = '#4895ef';
+            ctx.fill();
+            ctx.lineWidth = 3.5;
+            ctx.strokeStyle = '#0f172a';
+            ctx.stroke();
+
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.arc(sealX - sealR * 0.4, sealY - sealR * 0.2, 4.5, 0, Math.PI * 2);
+            ctx.arc(sealX + sealR * 0.4, sealY - sealR * 0.2, 4.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(sealX - 12, sealY + 10, 14, 0, Math.PI * 2);
+            ctx.arc(sealX + 12, sealY + 10, 14, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#3a2312';
+            ctx.beginPath();
+            ctx.arc(sealX, sealY + 4, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // Lane Guides
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+            ctx.lineWidth = 2;
+            lanePositions.forEach(lx => {
+                ctx.beginPath();
+                ctx.moveTo(lx, h * 0.24);
+                ctx.lineTo(lx, h);
+                ctx.stroke();
+            });
+        }
+
+        function drawHitZone() {
+            ctx.save();
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, hitLineY);
+            ctx.lineTo(canvas.width, hitLineY);
+            ctx.stroke();
+
+            lanePositions.forEach(lx => {
+                ctx.beginPath();
+                ctx.arc(lx, hitLineY, 22, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(251, 191, 36, 0.35)';
+                ctx.fill();
+                ctx.strokeStyle = '#f59e0b';
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+            });
+
+            ctx.font = '900 12px Pretendard';
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = '#000';
+            ctx.shadowBlur = 4;
+            ctx.textAlign = 'center';
+            ctx.fillText('🎯 HIT ZONE', canvas.width * 0.5, hitLineY - 28);
+            ctx.restore();
+        }
+
+        function drawAdultCharacter(adult) {
+            ctx.save();
+            ctx.translate(adult.x, adult.y);
+
+            ctx.beginPath();
+            ctx.ellipse(0, 12, 22, 7, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(0, -10, 24, 0, Math.PI * 2);
+            ctx.fillStyle = adult.color;
+            ctx.fill();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#ffffff';
+            ctx.stroke();
+
+            ctx.font = '26px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(adult.emoji, 0, -10);
+
+            ctx.font = 'bold 11px Pretendard, sans-serif';
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = '#000';
+            ctx.shadowBlur = 4;
+            ctx.fillText(adult.title, 0, -38);
+
+            ctx.restore();
+        }
+
+        function gameOver() {
+            isPlaying = false;
+            stopBGMSequencer();
+
+            const currentHigh = parseInt(localStorage.getItem('school_rhythm_highscore') || '0', 10);
+            if (score > currentHigh) {
+                localStorage.setItem('school_rhythm_highscore', score.toString());
+            }
+
+            document.getElementById('res-score').innerText = score.toLocaleString();
+            document.getElementById('res-combo').innerText = `${maxCombo} 회`;
+            document.getElementById('res-maxspeed').innerText = `SPEED x${maxSpeedMultiplier.toFixed(1)} ⚡`;
+
+            document.getElementById('overlay-gameover').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
